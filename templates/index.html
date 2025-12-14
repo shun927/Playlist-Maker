@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Requester</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
+        h1 { text-align: center; color: #333; }
+        form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background-color: #1DB954; color: white; border: none; border-radius: 20px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #1ed760; }
+        .message { padding: 10px; margin-bottom: 20px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .recent-list { margin-top: 30px; }
+        .recent-list h2 { font-size: 18px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        .recent-item { background: white; padding: 10px; margin-bottom: 5px; border-radius: 4px; color: #555; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1>🎵 プレイリストの曲をリクエスト</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="artist">アーティスト名</label>
+            <input type="text" id="artist" name="artist" placeholder="例: Official髭男dism" required>
+        </div>
+        <div class="form-group">
+            <label for="song">曲名</label>
+            <input type="text" id="song" name="song" placeholder="例: Pretender" required>
+        </div>
+        <button type="submit">リクエストを送る</button>
+    </form>
+
+    <div class="recent-list">
+        <h2>最近のリクエスト</h2>
+        {% for req in recent_requests %}
+            <div class="recent-item">
+                <strong>{{ req.song }}</strong> / {{ req.artist }}
+            </div>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
