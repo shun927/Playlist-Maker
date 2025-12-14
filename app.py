@@ -1,7 +1,7 @@
 import os
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 import json
 from dotenv import load_dotenv
 
@@ -18,7 +18,7 @@ SPOTIPY_REDIRECT_URI = os.getenv('SPOTIPY_REDIRECT_URI')
 
 # Simple in-memory storage for requests. 
 # In a production app, use a database (SQLite/PostgreSQL).
-# Format: [{'artist': 'Artist', 'song': 'Song', 'id': 1}, ...]
+# Format: [{'artist': 'Artist', 'song': 'Song', 'uri': 'spotify:track:xxx', 'image_url': 'http...', 'id': 1}, ...]
 SONG_REQUESTS = []
 REQUEST_ID_COUNTER = 1
 
@@ -30,23 +30,51 @@ def create_spotify_oauth():
         scope="playlist-modify-public playlist-modify-private"
     )
 
+def get_client_credentials_token():
+    auth_manager = SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET)
+    return spotipy.Spotify(auth_manager=auth_manager)
+
+@app.route('/api/search')
+def search_tracks():
+    query = request.args.get('q')
+    if not query:
+        return jsonify([])
+    
+    sp = get_client_credentials_token()
+    results = sp.search(q=query, type='track', limit=10, market='JP')
+    
+    tracks = []
+    for item in results['tracks']['items']:
+        tracks.append({
+            'name': item['name'],
+            'artist': item['artists'][0]['name'],
+            'uri': item['uri'],
+            'image_url': item['album']['images'][-1]['url'] if item['album']['images'] else None
+        })
+    return jsonify(tracks)
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     global REQUEST_ID_COUNTER
     if request.method == 'POST':
         artist = request.form.get('artist')
         song = request.form.get('song')
-        if artist and song:
+        uri = request.form.get('uri')
+        image_url = request.form.get('image_url')
+
+        if uri:
             SONG_REQUESTS.append({
                 'id': REQUEST_ID_COUNTER,
                 'artist': artist,
                 'song': song,
+                'uri': uri,
+                'image_url': image_url,
                 'status': 'pending'  # pending, imported, not_found
             })
             REQUEST_ID_COUNTER += 1
             flash('リクエストを受け付けました！', 'success')
         else:
-            flash('アーティスト名と曲名の両方を入力してください', 'error')
+            flash('曲を選択してください', 'error')
         return redirect(url_for('index'))
     
     # Show last 10 requests to avoid duplicates (optional visual cue)
@@ -98,6 +126,14 @@ def import_playlist():
         if req['status'] == 'imported': # Skip already imported
             continue
             
+        # If we have a URI, use it directly (from new search flow)
+        if 'uri' in req and req['uri']:
+             track_uris.append(req['uri'])
+             req['status'] = 'imported'
+             log_messages.append(f"Added: {req['artist']} - {req['song']}")
+             continue
+
+        # Fallback for old text-based requests (if any)
         query = f"artist:{req['artist']} track:{req['song']}"
         results = sp.search(q=query, type='track', limit=1)
         
