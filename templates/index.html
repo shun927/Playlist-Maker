@@ -1,58 +1,305 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Song Requester</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f9; }
-        h1 { text-align: center; color: #333; }
-        form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background-color: #1DB954; color: white; border: none; border-radius: 20px; font-size: 16px; cursor: pointer; }
-        button:hover { background-color: #1ed760; }
-        .message { padding: 10px; margin-bottom: 20px; border-radius: 4px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
-        .recent-list { margin-top: 30px; }
-        .recent-list h2 { font-size: 18px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-        .recent-item { background: white; padding: 10px; margin-bottom: 5px; border-radius: 4px; color: #555; font-size: 14px; }
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .search-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        /* Search Results */
+        #search-results {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #ddd;
+            border-top: none;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .result-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+
+        .result-info {
+            flex-grow: 1;
+        }
+
+        .result-title {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .result-artist {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Selected State */
+        #selected-track {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            align-items: center;
+        }
+
+        #selected-track img {
+            width: 50px;
+            height: 50px;
+            border-radius: 4px;
+            margin-right: 15px;
+        }
+
+        #selected-track div {
+            flex-grow: 1;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #1DB954;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #1ed760;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .recent-list {
+            margin-top: 30px;
+        }
+
+        .recent-list h2 {
+            font-size: 18px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+
+        .recent-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            color: #555;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .recent-item img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
     </style>
 </head>
+
 <body>
 
-    <h1>🎵 プレイリストの曲をリクエスト</h1>
+    <h1>🎵 曲をリクエスト</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="message {{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="message {{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 
-    <form method="POST">
+    <div class="search-container">
         <div class="form-group">
-            <label for="artist">アーティスト名</label>
-            <input type="text" id="artist" name="artist" placeholder="例: Official髭男dism" required>
+            <label for="search-input">曲を検索</label>
+            <input type="text" id="search-input" placeholder="曲名、アーティスト名を入力..." autocomplete="off">
+            <ul id="search-results"></ul>
         </div>
-        <div class="form-group">
-            <label for="song">曲名</label>
-            <input type="text" id="song" name="song" placeholder="例: Pretender" required>
-        </div>
-        <button type="submit">リクエストを送る</button>
-    </form>
+
+        <!-- Hidden form to submit the actual data -->
+        <form method="POST" id="request-form">
+            <input type="hidden" name="artist" id="input-artist">
+            <input type="hidden" name="song" id="input-song">
+            <input type="hidden" name="uri" id="input-uri">
+            <input type="hidden" name="image_url" id="input-image-url">
+
+            <div id="selected-track">
+                <img id="selected-image" src="" alt="">
+                <div>
+                    <div id="selected-title" style="font-weight: bold;"></div>
+                    <div id="selected-artist"></div>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" disabled>この曲をリクエスト</button>
+        </form>
+    </div>
 
     <div class="recent-list">
         <h2>最近のリクエスト</h2>
         {% for req in recent_requests %}
-            <div class="recent-item">
-                <strong>{{ req.song }}</strong> / {{ req.artist }}
-            </div>
+        <div class="recent-item">
+            {% if req.image_url %}
+            <img src="{{ req.image_url }}">
+            {% endif %}
+            <div><strong>{{ req.song }}</strong> / {{ req.artist }}</div>
+        </div>
         {% endfor %}
     </div>
 
+    <script>
+        const searchInput = document.getElementById('search-input');
+        const resultsList = document.getElementById('search-results');
+        const selectedTrackDiv = document.getElementById('selected-track');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // Hidden inputs
+        const inputArtist = document.getElementById('input-artist');
+        const inputSong = document.getElementById('input-song');
+        const inputUri = document.getElementById('input-uri');
+        const inputImageUrl = document.getElementById('input-image-url');
+
+        let debounceTimer;
+
+        searchInput.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            const query = this.value;
+
+            if (query.length < 2) {
+                resultsList.style.display = 'none';
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        resultsList.innerHTML = '';
+                        if (data.length > 0) {
+                            resultsList.style.display = 'block';
+                            data.forEach(track => {
+                                const li = document.createElement('li');
+                                li.className = 'result-item';
+                                li.innerHTML = `
+                                    <img src="${track.image_url || ''}" alt="">
+                                    <div class="result-info">
+                                        <div class="result-title">${track.name}</div>
+                                        <div class="result-artist">${track.artist}</div>
+                                    </div>
+                                `;
+                                li.onclick = () => selectTrack(track);
+                                resultsList.appendChild(li);
+                            });
+                        } else {
+                            resultsList.style.display = 'none';
+                        }
+                    });
+            }, 300);
+        });
+
+        function selectTrack(track) {
+            // Set hidden values
+            inputArtist.value = track.artist;
+            inputSong.value = track.name;
+            inputUri.value = track.uri;
+            inputImageUrl.value = track.image_url;
+
+            // Update UI
+            document.getElementById('selected-image').src = track.image_url;
+            document.getElementById('selected-title').textContent = track.name;
+            document.getElementById('selected-artist').textContent = track.artist;
+
+            selectedTrackDiv.style.display = 'flex';
+            resultsList.style.display = 'none';
+            searchInput.value = ''; // Clear search box
+            submitBtn.disabled = false;
+        }
+    </script>
 </body>
+
 </html>

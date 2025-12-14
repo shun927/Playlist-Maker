@@ -62,6 +62,7 @@
             padding: 12px;
             border-bottom: 1px solid #ddd;
             text-align: left;
+            vertical-align: middle;
         }
 
         th {
@@ -97,6 +98,15 @@
         .flash.warning {
             background-color: #fff3cd;
             color: #856404;
+        }
+
+        .track-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            object-fit: cover;
+            margin-right: 10px;
+            vertical-align: middle;
         }
     </style>
 </head>
@@ -135,8 +145,7 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>アーティスト</th>
-                <th>曲名</th>
+                <th>曲情報</th>
                 <th>ステータス</th>
             </tr>
         </thead>
@@ -144,8 +153,12 @@
             {% for req in requests %}
             <tr>
                 <td>{{ req.id }}</td>
-                <td>{{ req.artist }}</td>
-                <td>{{ req.song }}</td>
+                <td>
+                    {% if req.image_url %}
+                    <img src="{{ req.image_url }}" class="track-img">
+                    {% endif %}
+                    <strong>{{ req.song }}</strong> / {{ req.artist }}
+                </td>
                 <td>
                     <span class="status-{{ req.status }}">
                         {% if req.status == 'pending' %} 未処理
@@ -157,7 +170,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="4" style="text-align: center;">まだリクエストはありません</td>
+                <td colspan="3" style="text-align: center;">まだリクエストはありません</td>
             </tr>
             {% endfor %}
         </tbody>
